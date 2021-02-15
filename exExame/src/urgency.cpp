@@ -87,7 +87,8 @@ void *nurse_iteration(void *args)
    while (true)
    {
       printf("\e[34;01mNurse: get next patient\e[0m\n");
-      uint32_t patient = retrieve_pfifo(&hd->triage_queue);
+      int32_t patient = retrieve_pfifo(&hd->triage_queue);
+      if(patient == -1) return NULL;
       check_valid_patient(patient);
       printf("\e[34;01mNurse: evaluate patient %u priority\e[0m\n", patient);
       uint32_t priority = random_manchester_triage_priority();
@@ -104,7 +105,8 @@ void *doctor_iteration(void *args)
    while (true)
    {
       printf("\e[32;01mDoctor: get next patient\e[0m\n");
-      uint32_t patient = retrieve_pfifo(&hd->doctor_queue);
+      int32_t patient = retrieve_pfifo(&hd->doctor_queue);
+      if(patient == -1) return NULL;
       check_valid_patient(patient);
       printf("\e[32;01mDoctor: treat patient %u\e[0m\n", patient);
       random_wait();
@@ -219,6 +221,19 @@ int main(int argc, char *argv[])
    {
       thread_join(patients[i], NULL);
    }
+   for(uint32_t i = 0; i < nnurses; i++)
+      insert_pfifo(&hd->triage_queue, -1, 1);
+   for(uint32_t i = 0; i < ndoctors; i++)
+      insert_pfifo(&hd->doctor_queue, -1, 1);
+   for (uint32_t i = 0; i < nnurses; i++)
+   {
+      thread_join(nurses[i], NULL);
+   }
+   for (uint32_t i = 0; i < ndoctors; i++)
+   {
+      thread_join(doctors[i], NULL);
+   }
+   
    return EXIT_SUCCESS;
 }
 

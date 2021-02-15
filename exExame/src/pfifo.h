@@ -25,7 +25,7 @@ typedef struct
 {
    struct
    {
-      uint32_t id;         // element ID (works as an index in array all_patients)
+      int32_t id;         // element ID (works as an index in array all_patients)
       uint32_t priority;   // patient priority in FIFO
    } array[FIFO_MAXSIZE];
    uint32_t inp;  ///< point of insertion (queue tail)
@@ -39,8 +39,8 @@ typedef struct
 void init_pfifo(PriorityFIFO* pfifo);
 int empty_pfifo(PriorityFIFO* pfifo);
 int full_pfifo(PriorityFIFO* pfifo);
-void insert_pfifo(PriorityFIFO* pfifo, uint32_t id, uint32_t priority);
-uint32_t retrieve_pfifo(PriorityFIFO* pfifo);
+void insert_pfifo(PriorityFIFO* pfifo, int32_t id, uint32_t priority);
+int32_t retrieve_pfifo(PriorityFIFO* pfifo);
 void print_pfifo(PriorityFIFO* pfifo);
 
 #endif
