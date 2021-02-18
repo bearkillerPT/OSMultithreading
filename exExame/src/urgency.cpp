@@ -41,6 +41,8 @@ typedef struct
 {
    char name[MAX_NAME + 1];
    int done; // 0: waiting for consultation; 1: consultation finished
+   pthread_cond_t notDone;
+   pthread_mutex_t lock;
 } Patient;
 
 typedef struct
@@ -107,11 +109,14 @@ void *doctor_iteration(void *args)
       printf("\e[32;01mDoctor: get next patient\e[0m\n");
       int32_t patient = retrieve_pfifo(&hd->doctor_queue);
       if(patient == -1) return NULL;
+      mutex_lock( &hd->all_patients[patient].lock);
       check_valid_patient(patient);
       printf("\e[32;01mDoctor: treat patient %u\e[0m\n", patient);
       random_wait();
       printf("\e[32;01mDoctor: patient %u treated\e[0m\n", patient);
       hd->all_patients[patient].done = 1;
+      cond_signal( &hd->all_patients[patient].notDone);
+      mutex_unlock( &hd->all_patients[patient].lock);
    }
    return NULL;
 }
@@ -129,10 +134,12 @@ void patient_goto_urgency(int id)
 /* changes may be required to this function */
 void patient_wait_end_of_consultation(int id)
 {
-   while (hd->all_patients[id].done != 1)
-      ;
+   mutex_lock(&hd->all_patients[id].lock);
+   while (hd->all_patients[id].done == 0)
+      cond_wait(&hd->all_patients[id].notDone, &hd->all_patients[id].lock);
    check_valid_name(hd->all_patients[id].name);
    printf("\e[30;01mPatient %s (number %u): health problems treated\e[0m\n", hd->all_patients[id].name, id);
+   mutex_unlock(&hd->all_patients[id].lock);
 }
 
 /* changes are required to this function */
@@ -274,6 +281,8 @@ void new_patient(Patient *patient)
 {
    strcpy(patient->name, random_name());
    patient->done = 0;
+   patient->notDone = PTHREAD_COND_INITIALIZER;
+   patient->lock = PTHREAD_MUTEX_INITIALIZER;
 }
 
 void random_wait()
